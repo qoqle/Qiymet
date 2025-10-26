@@ -76,11 +76,12 @@ def fetch_grades():
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--window-size=1920,1080")
-
+    
     # Binary paths (Railway və Docker üçün)
     possible_paths = [
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
+        "/usr/lib/chromium-browser/chromium-browser",
         "/app/.apt/usr/bin/chromium-browser",
     ]
     for path in possible_paths:
