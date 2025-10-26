@@ -81,7 +81,6 @@ def fetch_grades():
     possible_paths = [
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
-        "/usr/lib/chromium-browser/chromium-browser",
         "/app/.apt/usr/bin/chromium-browser",
     ]
     for path in possible_paths:
