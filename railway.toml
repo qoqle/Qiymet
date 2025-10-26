@@ -11,4 +11,4 @@ packages = [
 ]
 
 [start]
-command = "python main.py"
+command = "chmod +x bin/chromedriver && python main.py"
