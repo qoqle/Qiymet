@@ -72,6 +72,11 @@ def send_email(subject, body):
 # ========================
 # Qiymətləri çəkmək (Əsas Dəyişiklik)
 # ========================
+# main.py faylinda olmalidir
+
+# ... diger importlar ...
+# DRIVER_PATH-a ehtiyac qalmir, onu silin
+
 def fetch_grades():
     options = Options()
     options.add_argument("--headless")
@@ -79,22 +84,27 @@ def fetch_grades():
     options.add_argument("--no-sandbox")
     
     # -------------------------------------------------------------
-    # Sürücünün yolu birbaşa repozitoriyadakı fayla göstərilir
+    # CHROMIUM BİNARY YOLUNU MƏCBUR ET (RAILWAY ÜÇÜN YALNIZ ŞANS)
     # -------------------------------------------------------------
-    if not os.path.exists(DRIVER_PATH):
-        # Fayl tapılmazsa, kritik xəta verilir
-        raise FileNotFoundError(f"❌ DRIVER_PATH: {DRIVER_PATH} yolunda 'chromedriver' faylı tapılmadı. Zəhmət olmasa, repozitoriyanı yoxlayın.")
-
-    # Sürücünü yerli fayldan işə salırıq
-    service = Service(executable_path=DRIVER_PATH)
+    
+    # Railway'in qurasdirdigi 'chromium' brauzerinin ehtimal olunan yolu
+    CHROME_BINARY_PATH = "/usr/bin/chromium" 
+    
+    # Eger brauzer tapilsa, Selenium-a yolunu gosterir
+    if os.path.exists(CHROME_BINARY_PATH):
+        options.binary_location = CHROME_BINARY_PATH
+    else:
+        # Brauzer tapilmasa, xeta atiriq
+        raise Exception(f"❌ Chromium Brauzeri ({CHROME_BINARY_PATH}) tapilmadi. Railway build xetasi.")
 
     try:
-        # Brauzer sürücüsü aktivləşdirilir
-        driver = webdriver.Chrome(service=service, options=options)
+        # SERVICE obyektini istifade etmeden, driveri birbasa ise saliriq.
+        # Options-da binary location teyin edildiyi ucun, Selenium ozu driver axtarmalidir.
+        driver = webdriver.Chrome(options=options)
         
     except Exception as e:
-        # Sürücü işə düşməzdirsə, xəta atırıq (məsələn, icra icazəsi yoxdur)
-        raise Exception(f"❌ ChromeDriver-i başlada bilmədi: {e}. Zəhmət olmasa, Render.com quraşdırmasını və icazələri yoxlayın.")
+        # Mesajin icinde 'wrong permissions' yoxdursa, bu yaxsi isaredir.
+        raise Exception(f"❌ Brauzer/Driver Baslatma Xetasi: {e}. Platforma problemi davam edir.")
         
     # -------------------------------------------------------------
     # Qalan hissə eyni qalır
@@ -102,7 +112,6 @@ def fetch_grades():
     
     driver.get(LOGIN_URL)
     
-    # LOGIN
     # ... (Giriş kodu eyni qalır)
     driver.find_element(By.NAME, "username").send_keys(USERNAME)
     driver.find_element(By.NAME, "password").send_keys(PASSWORD)
@@ -121,31 +130,17 @@ def fetch_grades():
         driver.quit()
         raise Exception("❌ Qiymət cədvəli tapılmadı. Giriş uğursuz ola bilər.")
 
+    # ... (Qalan kod eyni qalır)
     table_html = driver.execute_script("return document.querySelector('table.table.box').outerHTML;")
     driver.quit()
-
-    # ... (HTML analizi və qiymət çıxarılması kodu eyni qalır)
+    
+    # ... (Qalan kod eyni qalır)
     soup = BeautifulSoup(table_html, "html.parser")
     rows = soup.find_all("tr")[1:]
     grades = []
     required_cols = max(TRACKED_COLUMNS.values()) + 1
+    # ... (qiymetlerin cixarilmasi kodu)
     
-    for row in rows:
-        cols = [c.get_text(strip=True) for c in row.find_all("td")]
-        
-        if len(cols) < required_cols or "Cəmi akts" in cols[0]:
-            continue
-            
-        grade_data = {}
-        grade_data["ders_kodu"] = cols[0]
-        grade_data["ders_adi"] = cols[4]
-        
-        for col_name, index in TRACKED_COLUMNS.items():
-            key = col_name.lower() 
-            grade_data[key] = cols[index] or None
-            
-        grades.append(grade_data)
-        
     return grades
 
 
