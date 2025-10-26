@@ -5,12 +5,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# LOKAL TEST ÜÇÜN ƏLAVƏ EDİLDİ
+# .env faylı varsa yüklə
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    print("Xəbərdarlıq: 'python-dotenv' yoxdur — sistem dəyişənləri oxunacaq.")
+    pass
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -19,7 +19,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 import chromedriver_autoinstaller
-
 
 # ========================
 # KONFİQURASİYA
@@ -33,7 +32,6 @@ EMAIL_TO_LIST = [addr.strip() for addr in EMAIL_TO_STRING.split(',') if addr.str
 
 LOGIN_URL = "https://my.beu.edu.az/?mod=login"
 GRADES_URL = "https://my.beu.edu.az/?mod=grades"
-
 STORED_FILE = "grades.json"
 
 TRACKED_COLUMNS = {
@@ -43,15 +41,13 @@ TRACKED_COLUMNS = {
     "TSI": 10
 }
 
-
 # ========================
 # EMAIL FUNKSİYASI
 # ========================
 def send_email(subject, body):
     if not EMAIL_TO_LIST:
-        print("❌ E-mail göndərilmədi: alıcı siyahısı boşdur.")
+        print("❌ E-mail göndərilmədi: Alıcı siyahısı boşdur.")
         return
-
     msg = MIMEMultipart()
     msg['From'] = EMAIL_FROM
     msg['To'] = ", ".join(EMAIL_TO_LIST)
@@ -62,13 +58,12 @@ def send_email(subject, body):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_FROM, EMAIL_PASS)
             server.sendmail(EMAIL_FROM, EMAIL_TO_LIST, msg.as_string())
-            print(f"📧 E-mail {len(EMAIL_TO_LIST)} alıcıya göndərildi.")
+            print(f"📧 E-mail {len(EMAIL_TO_LIST)} alıcıya göndərildi!")
     except Exception as e:
         print("❌ E-mail göndərilə bilmədi:", e)
 
-
 # ========================
-# Chromium üçün tam düzəliş
+# Qiymətləri çəkmək
 # ========================
 def fetch_grades():
     # ChromeDriver avtomatik quraşdırılır
@@ -82,7 +77,7 @@ def fetch_grades():
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--window-size=1920,1080")
 
-    # Railway və ya Docker kimi mühitlərdə Chromium binary yeri fərqli ola bilər
+    # Binary paths (Railway və Docker üçün)
     possible_paths = [
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
@@ -106,17 +101,16 @@ def fetch_grades():
     driver.find_element(By.NAME, "password").send_keys(PASSWORD)
     driver.find_element(By.NAME, "password").send_keys(Keys.RETURN)
 
-    # GRADES SƏHİFƏSİNƏ KEÇ
+    # GRADES SƏHİFƏSİNƏ KEÇİŞ
     driver.get(GRADES_URL)
-
     try:
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "table.table.box"))
         )
-        print("✅ Hesaba uğurla giriş edildi.")
+        print("✅ Hesaba uğurla giriş edildi")
     except:
         driver.quit()
-        raise Exception("❌ Qiymət cədvəli tapılmadı — login uğursuz ola bilər.")
+        raise Exception("❌ Qiymət cədvəli tapılmadı.")
 
     table_html = driver.execute_script("return document.querySelector('table.table.box').outerHTML;")
     driver.quit()
@@ -126,22 +120,18 @@ def fetch_grades():
     grades = []
 
     required_cols = max(TRACKED_COLUMNS.values()) + 1
+
     for row in rows:
         cols = [c.get_text(strip=True) for c in row.find_all("td")]
         if len(cols) < required_cols or "Cəmi akts" in cols[0]:
             continue
 
-        grade_data = {
-            "ders_kodu": cols[0],
-            "ders_adi": cols[4],
-        }
+        grade_data = {"ders_kodu": cols[0], "ders_adi": cols[4]}
         for col_name, index in TRACKED_COLUMNS.items():
-            key = col_name.lower()
-            grade_data[key] = cols[index] or None
+            grade_data[col_name.lower()] = cols[index] or None
         grades.append(grade_data)
 
     return grades
-
 
 # ========================
 # Fayldan oxu / yaz
@@ -153,14 +143,12 @@ def load_previous_grades():
         with open(STORED_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
-        print("⚠️ Köhnə fayl zədələnib — boş siyahı ilə davam edilir.")
+        print("⚠️ Köhnə fayl zədələnib.")
         return []
-
 
 def save_grades(grades):
     with open(STORED_FILE, "w", encoding="utf-8") as f:
         json.dump(grades, f, ensure_ascii=False, indent=2)
-
 
 # ========================
 # Müqayisə və xəbər
@@ -168,7 +156,6 @@ def save_grades(grades):
 def compare_and_notify(old, new):
     changes_detected = False
     old_dict = {item['ders_kodu']: item for item in old}
-
     for n in new:
         o = old_dict.get(n['ders_kodu'])
         if not o:
@@ -177,36 +164,24 @@ def compare_and_notify(old, new):
         body_msg = ""
         for col_name in TRACKED_COLUMNS.keys():
             key = col_name.lower()
-            old_value = o.get(key)
-            new_value = n.get(key)
-
-            if (old_value or "") != (new_value or ""):
+            old_val_clean = o.get(key) or ""
+            new_val_clean = n.get(key) or ""
+            if old_val_clean != new_val_clean:
                 changes_detected = True
-                body_msg += f"Dəyişiklik aşkar edildi: **{col_name}**\n"
-                body_msg += f"Dərs: {n['ders_adi']} ({n['ders_kodu']})\n"
+                body_msg += f"Dəyişiklik aşkar edildi: **{col_name}**\nDərs: {n['ders_adi']} ({n['ders_kodu']})\n"
 
         if body_msg:
-            subject = f"📢 YENİ DƏYİŞİKLİK: {n['ders_adi']}"
-            send_email(subject, body_msg)
+            send_email(f"📢 YENİ DƏYİŞİKLİK: {n['ders_adi']}", body_msg)
 
     if not changes_detected:
         print("🔄 Dəyişiklik yoxdur.")
-
 
 # ========================
 # MAIN LOOP
 # ========================
 if __name__ == "__main__":
-    print("Dəyişənlərin vəziyyəti:")
-    print(f"BEU_USERNAME: {USERNAME}")
-    print(f"BEU_PASSWORD: {'*' * len(PASSWORD) if PASSWORD else None}")
-    print(f"GMAIL_USER: {EMAIL_FROM}")
-    print(f"GMAIL_APP_PASSWORD: {'*' * len(EMAIL_PASS) if EMAIL_PASS else None}")
-    print(f"RECIPIENTS: {EMAIL_TO_STRING}")
-    print("-" * 30)
-
     if not (USERNAME and PASSWORD and EMAIL_FROM and EMAIL_PASS and EMAIL_TO_LIST):
-        print("FATAL XƏTA: Zəhmət olmasa bütün mühit dəyişənlərini təyin edin.")
+        print("FATAL XƏTA: Bütün mühit dəyişənlərini təyin edin!")
         exit(1)
 
     while True:
@@ -215,14 +190,11 @@ if __name__ == "__main__":
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🔑 Qiymətlər yoxlanılır...")
             current = fetch_grades()
             previous = load_previous_grades()
-
             if not previous:
-                print("ℹ️ İlk yoxlama icra edildi. Qiymətlər saxlanılır.")
+                print("ℹ️ İlk yoxlama icra edildi. Qiymətlər fayla saxlanılır.")
             else:
                 compare_and_notify(previous, current)
-
             save_grades(current)
-
         except Exception as e:
             print(f"❌ Əsas dövrdə xəta baş verdi: {e}")
             if EMAIL_FROM and EMAIL_PASS and EMAIL_TO_LIST:
