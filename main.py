@@ -83,7 +83,7 @@ def fetch_grades():
     except Exception:
         # Əgər avtomatik yol işləmirsə, Linux serverlər üçün statik yolu sınayırıq
         try:
-            service = Service(executable_path="/usr/bin/chromedriver")
+            service = Service(executable_path="/usr/bin/local/chromedriver")
             driver = webdriver.Chrome(service=service, options=options)
         except:
             raise Exception("ChromeDriver-i başlada bilmədi. Zəhmət olmasa, quraşdırıldığından əmin olun.")
