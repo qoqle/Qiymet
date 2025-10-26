@@ -1,17 +1,5 @@
-# railway.toml
 [build]
-# Google Chrome və ChromeDriver-in quraşdırılmasını təmin edir
-packages = [
-    "google-chrome", 
-    "chromedriver",
-    "libglib2.0-0",
-    "libnss3",
-    "libgconf-2-4",
-    "libfontconfig1",
-    "libstdc++6",
-    "libx11-6"
-]
+builder = "NIXPACKS"
 
 [start]
-# Əvvəldən bildiyimiz başlanğıc əmri
 command = "python main.py"
