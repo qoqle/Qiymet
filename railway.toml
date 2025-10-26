@@ -1,0 +1,8 @@
+# railway.toml
+[build]
+# Google Chrome və ChromeDriver-in quraşdırılmasını təmin edir
+packages = ["google-chrome", "chromedriver"]
+
+[start]
+# Əvvəldən bildiyimiz başlanğıc əmri
+command = "python main.py"
