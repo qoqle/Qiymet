@@ -79,14 +79,19 @@ def fetch_grades():
     
     # ChromeDriver-i başlatmaq üçün kod (Lokal və Serverə uyğun)
     try:
-        driver = webdriver.Chrome(options=options)
-    except Exception:
-        # Əgər avtomatik yol işləmirsə, Linux serverlər üçün statik yolu sınayırıq
+        # 1. Nixpacks tərəfindən quraşdırılan standart yolu sınayırıq
+        service = Service(executable_path="/usr/bin/chromedriver")
+        driver = webdriver.Chrome(service=service, options=options)
+    except Exception as e:
+        # 2. Ümumi yolları sınayırıq və ya xəta veririk
+        print(f"Driverin standart yolla başlatma xətası: {e}")
         try:
-            service = Service(executable_path="/usr/bin/chromedriver")
+            # Bəzi mühitlərdə bu yol işləyir
+            service = Service(executable_path="/usr/local/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=options)
-        except:
-            raise Exception("ChromeDriver-i başlada bilmədi. Zəhmət olmasa, quraşdırıldığından əmin olun.")
+        except Exception:
+             # Əgər heç biri işləmirsə, xəta atırıq
+             raise Exception("ChromeDriver-i başlada bilmədi. Sürücünün yolu tapılmadı.")
 
     driver.get(LOGIN_URL)
     
