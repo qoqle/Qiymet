@@ -78,20 +78,22 @@ def fetch_grades():
     options.add_argument("--no-sandbox") 
     
     # ChromeDriver-i başlatmaq üçün kod (Lokal və Serverə uyğun)
+    chrome_binary_path = "/usr/bin/google-chrome" 
+    
+    # Əgər chrome bu yolda tapılsa, onu ikilik fayl kimi təyin edirik.
+    # Bu, Selenium Manager-ə sürücünü tapmaqda kömək edir.
+    if os.path.exists(chrome_binary_path):
+        options.binary_location = chrome_binary_path
+
     try:
-        # 1. Nixpacks tərəfindən quraşdırılan standart yolu sınayırıq
-        service = Service(executable_path="/usr/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=options)
+        # Service funksiyasını driversiz çağırırıq ki, Selenium Manager 
+        # özü sürücünü tapsın (yeni Selenium-un default davranışı)
+        driver = webdriver.Chrome(options=options)
+        
     except Exception as e:
-        # 2. Ümumi yolları sınayırıq və ya xəta veririk
-        print(f"Driverin standart yolla başlatma xətası: {e}")
-        try:
-            # Bəzi mühitlərdə bu yol işləyir
-            service = Service(executable_path="/usr/local/bin/chromedriver")
-            driver = webdriver.Chrome(service=service, options=options)
-        except Exception:
-             # Əgər heç biri işləmirsə, xəta atırıq
-             raise Exception("ChromeDriver-i başlada bilmədi. Sürücünün yolu tapılmadı.")
+        # Əgər hələ də xəta verirsə, bu, Chrome'un ümumiyyətlə 
+        # quraşdırılmaması deməkdir.
+        raise Exception(f"❌ ChromeDriver-i başlada bilmədi: {e}. Zəhmət olmasa, 'railway.toml' faylını yoxlayın.")
 
     driver.get(LOGIN_URL)
     
