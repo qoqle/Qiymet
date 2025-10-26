@@ -1,0 +1,14 @@
+# railway.toml
+[build]
+# chromium ve onun lazimi kitabxanalari (Nixpacks vasitesi ile)
+packages = [
+    "chromium", 
+    "libnss3",
+    "libatk1.0-0",
+    "libcups2",
+    "libdrm2",
+    "libgtk-3-0"
+]
+
+[start]
+command = "python main.py"
