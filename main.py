@@ -78,7 +78,7 @@ def fetch_grades():
     options.add_argument("--no-sandbox") 
     
     # ChromeDriver-i başlatmaq üçün kod (Lokal və Serverə uyğun)
-    chrome_binary_path = "/usr/bin/google-chrome" 
+    chrome_binary_path = "/usr/bin/chromium" 
     
     # Əgər chrome bu yolda tapılsa, onu ikilik fayl kimi təyin edirik.
     # Bu, Selenium Manager-ə sürücünü tapmaqda kömək edir.
