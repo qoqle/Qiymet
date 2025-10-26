@@ -5,7 +5,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# LOKAL TEST ÜÇÜN ƏLAVƏ EDİLDİ: .env faylını oxuyur
+# ========================
+# ENV YÜKLƏNMƏSİ (.env üçün)
+# ========================
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -17,7 +19,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-import undetected_chromedriver as uc  # ✅ Railway üçün
+import undetected_chromedriver as uc
+import chromedriver_autoinstaller  # ✅ Railway üçün
 
 # ========================
 # KONFİQURASİYA
@@ -64,22 +67,33 @@ def send_email(subject, body):
         print("❌ E-mail göndərilə bilmədi. Gmail App Şifrəsini və ya icazələri yoxlayın:", e)
 
 # ========================
-# Qiymətləri çəkmək (Chromium üçün düzəldilmiş)
+# CHROMIUM AYARLARI
 # ========================
-def fetch_grades():
+def create_chrome_driver():
+    chromedriver_autoinstaller.install()  # ChromeDriver avtomatik qurulsun
+
     options = uc.ChromeOptions()
+    options.binary_location = "/usr/bin/chromium"  # ✅ Railway üçün əsas düzəliş
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
+    options.add_argument("--disable-extensions")
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--window-size=1920,1080")
 
     try:
         driver = uc.Chrome(options=options)
+        print("✅ ChromeDriver uğurla işə düşdü!")
+        return driver
     except Exception as e:
         raise Exception(f"ChromeDriver-i başlada bilmədi: {e}")
 
+# ========================
+# Qiymətləri Çəkmək
+# ========================
+def fetch_grades():
+    driver = create_chrome_driver()
     driver.get(LOGIN_URL)
 
     # LOGIN
@@ -113,9 +127,10 @@ def fetch_grades():
         if len(cols) < required_cols or "Cəmi akts" in cols[0]:
             continue
 
-        grade_data = {}
-        grade_data["ders_kodu"] = cols[0]
-        grade_data["ders_adi"] = cols[4]
+        grade_data = {
+            "ders_kodu": cols[0],
+            "ders_adi": cols[4]
+        }
 
         for col_name, index in TRACKED_COLUMNS.items():
             key = col_name.lower()
@@ -161,13 +176,11 @@ def compare_and_notify(old, new):
             old_value = o.get(key)
             new_value = n.get(key)
 
-            old_val_clean = old_value if old_value else ""
-            new_val_clean = new_value if new_value else ""
-
-            if old_val_clean != new_val_clean:
+            if (old_value or "") != (new_value or ""):
                 changes_detected = True
-                body_msg += f"Dəyişiklik aşkar edildi: **{col_name}**\n"
+                body_msg += f"Dəyişiklik aşkar edildi: {col_name}\n"
                 body_msg += f"Dərs: {n['ders_adi']} ({n['ders_kodu']})\n"
+                body_msg += f"Köhnə: {old_value or '-'}  →  Yeni: {new_value or '-'}\n\n"
 
         if body_msg:
             subject = f"📢 YENİ DƏYİŞİKLİK: {n['ders_adi']}"
@@ -194,7 +207,6 @@ if __name__ == "__main__":
 
     while True:
         start_time = time.time()
-
         try:
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🔑 Qiymətlər yoxlanılır...")
             current = fetch_grades()

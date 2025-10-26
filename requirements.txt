@@ -1,5 +1,6 @@
+undetected-chromedriver
 selenium
+chromedriver-autoinstaller
+chromium-binary
 beautifulsoup4
 python-dotenv
-undetected-chromedriver
-setuptools
