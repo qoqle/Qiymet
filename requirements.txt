@@ -3,3 +3,4 @@ chromedriver-autoinstaller
 selenium
 beautifulsoup4
 python-dotenv
+setuptools
